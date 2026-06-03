@@ -1,5 +1,8 @@
 import User from "../models/user_model.js";
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+const secretKey="mysecretkey"
+
 async function RegisterUser(req,res){
     try{
         const {name,email,password}=req.body;
@@ -26,11 +29,27 @@ async function LoginUser(req,res){
         if(!isMatch){
             return res.status(400).send("Invalid credentials")
         }
-        res.status(200).send("User logged in")
+        const token=jwt.sign({email},secretKey,{expiresIn:'1h'})
+        res.status(200).json({message:"Login successful",token})
     }
     catch(err){
         res.status(500).send(err)
     }
 }
 
-export {RegisterUser,LoginUser}
+function validateToken(req,res){
+    const token=req.body.token
+    if(!token){
+        return res.status(401).send("Access denied. No token provided.")
+    }
+    try{
+        const decoded=jwt.verify(token,secretKey)
+        req.user=decoded
+        res.status(200).json({message:"Token is valid",user:req.user})
+    }
+    catch(err){
+        res.status(400).send("Invalid token")
+    }
+}
+export {RegisterUser,LoginUser,validateToken}
+
